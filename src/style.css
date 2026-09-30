@@ -1,0 +1,108 @@
+/* Torvo's frame: quiet greys that get out of the page's way. Colours come
+   from libadwaita's named colours, so light and dark (and any accent the
+   desktop picks) follow without this file knowing which is which. */
+
+window.torvo {
+  background-color: @window_bg_color;
+}
+
+.torvo-sidebar {
+  padding: 6px 8px 8px 8px;
+  background-color: @sidebar_bg_color;
+}
+
+.torvo-topbar {
+  padding: 4px 6px;
+  background-color: @headerbar_bg_color;
+}
+
+.torvo-field {
+  min-height: 32px;
+  border-radius: 8px;
+}
+
+.torvo-field.private {
+  outline: 2px solid alpha(@accent_bg_color, 0.6);
+  outline-offset: -2px;
+}
+
+.torvo-tab {
+  padding: 5px 8px;
+  border-radius: 8px;
+  min-height: 22px;
+  transition: background-color 80ms ease-out;
+}
+
+.torvo-tabs.horizontal .torvo-tab,
+box.horizontal.torvo-tabs > .torvo-tab {
+  min-width: 140px;
+}
+
+.torvo-tab:hover {
+  background-color: alpha(currentColor, 0.06);
+}
+
+.torvo-tab.current {
+  background-color: alpha(currentColor, 0.11);
+}
+
+.torvo-tab.asleep label {
+  opacity: 0.6;
+}
+
+.torvo-tab.private .favicon {
+  color: @accent_color;
+}
+
+.torvo-tab .tab-close {
+  min-width: 20px;
+  min-height: 20px;
+  padding: 0;
+  opacity: 0;
+}
+
+.torvo-tab:hover .tab-close,
+.torvo-tab.current .tab-close {
+  opacity: 0.7;
+}
+
+.torvo-tab.pinned {
+  padding: 8px;
+  background-color: alpha(currentColor, 0.05);
+}
+
+.torvo-tab.pinned.current {
+  background-color: alpha(currentColor, 0.13);
+}
+
+.torvo-pins flowboxchild {
+  padding: 0;
+}
+
+.torvo-progress trough,
+.torvo-progress progress {
+  min-height: 2px;
+}
+
+.torvo-status {
+  margin: 0 0 6px 6px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.85em;
+  background-color: alpha(@view_bg_color, 0.95);
+  color: @view_fg_color;
+  box-shadow: 0 1px 3px alpha(black, 0.18);
+}
+
+.torvo-find {
+  padding: 6px 8px;
+  border-bottom: 1px solid alpha(currentColor, 0.1);
+}
+
+.torvo-suggestions {
+  background: none;
+}
+
+.torvo-suggestion {
+  padding: 6px 8px;
+}
