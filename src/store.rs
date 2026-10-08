@@ -1,80 +1,84 @@
-//! Where Torvo keeps its files, and how it writes them.
-//!
-//! Everything follows the XDG base directory spec, so on Arch it lands where
-//! every other well-behaved program's files do:
-//!
-//! - `$XDG_DATA_HOME/torvo`   (usually `~/.local/share/torvo`): history,
-//!   bookmarks, open tabs, hidden elements, WebKit's cookies and site data.
-//! - `$XDG_CONFIG_HOME/torvo` (usually `~/.config/torvo`): settings.
-//! - `$XDG_CACHE_HOME/torvo`  (usually `~/.cache/torvo`): WebKit's HTTP cache
-//!   and the compiled ad-block list. Safe to delete at any time.
-//!
-//! Files are small JSON documents written atomically (write to a temporary
-//! file, then rename), so a crash mid-save never leaves half a file behind.
+//! Saves the team between launches, as one JSON file.
 
-use serde::{Serialize, de::DeserializeOwned};
-use std::fs;
-use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-const APP: &str = "torvo";
+use serde::{Deserialize, Serialize};
 
-fn xdg(var: &str, fallback: &str) -> PathBuf {
-    match std::env::var_os(var) {
-        Some(dir) if Path::new(&dir).is_absolute() => PathBuf::from(dir),
-        _ => {
-            let home = std::env::var_os("HOME").map(PathBuf::from).unwrap_or_else(|| PathBuf::from("/tmp"));
-            home.join(fallback)
+use crate::{model::*, theme::ThemeMode};
+
+#[derive(Serialize, Deserialize, Default)]
+pub struct Saved {
+    pub signed_in: bool,
+    pub profile: Profile,
+    pub bots: Vec<Bot>,
+    pub next_id: u64,
+    pub theme: ThemeMode,
+    pub installed_plugins: Vec<String>,
+    #[serde(default)]
+    pub settings: Settings,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Settings {
+    pub notifications: bool,
+    pub sounds: bool,
+    pub only_when_needed: bool,
+    pub auto_review: bool,
+    pub ask_before_sending: bool,
+    pub ask_before_purchases: bool,
+    pub ask_before_publishing: bool,
+}
+
+impl Default for Settings {
+    fn default() -> Self {
+        Settings {
+            notifications: true,
+            sounds: false,
+            only_when_needed: false,
+            auto_review: false,
+            ask_before_sending: true,
+            ask_before_purchases: true,
+            ask_before_publishing: true,
         }
     }
 }
 
 pub fn data_dir() -> PathBuf {
-    xdg("XDG_DATA_HOME", ".local/share").join(APP)
+    if let Ok(dir) = std::env::var("SUZHOU_DATA_DIR") {
+        return PathBuf::from(dir);
+    }
+    let base = std::env::var("XDG_DATA_HOME")
+        .map(PathBuf::from)
+        .or_else(|_| std::env::var("HOME").map(|h| PathBuf::from(h).join(".local/share")))
+        .unwrap_or_else(|_| std::env::temp_dir());
+    base.join("suzhou")
 }
 
-pub fn config_dir() -> PathBuf {
-    xdg("XDG_CONFIG_HOME", ".config").join(APP)
+fn state_file() -> PathBuf {
+    data_dir().join("state.json")
 }
 
-pub fn cache_dir() -> PathBuf {
-    xdg("XDG_CACHE_HOME", ".cache").join(APP)
+pub fn load() -> Option<Saved> {
+    let text = std::fs::read_to_string(state_file()).ok()?;
+    serde_json::from_str(&text).ok()
 }
 
-pub fn downloads_dir() -> PathBuf {
-    glib_download_dir().unwrap_or_else(|| xdg("HOME", "").join("Downloads"))
-}
-
-fn glib_download_dir() -> Option<PathBuf> {
-    gtk::glib::user_special_dir(gtk::glib::UserDirectory::Downloads)
-}
-
-/// Read a JSON file, or fall back to the default when it is missing or broken.
-/// A broken file is kept aside as `name.broken` rather than overwritten, so a
-/// bug never silently eats somebody's history.
-pub fn load<T: DeserializeOwned + Default>(path: &Path) -> T {
-    let Ok(bytes) = fs::read(path) else { return T::default() };
-    match serde_json::from_slice(&bytes) {
-        Ok(value) => value,
-        Err(err) => {
-            eprintln!("torvo: {} is unreadable ({err}); starting fresh", path.display());
-            let _ = fs::rename(path, path.with_extension("broken"));
-            T::default()
+pub fn save(saved: &Saved) {
+    let path = state_file();
+    if let Some(parent) = path.parent() {
+        let _ = std::fs::create_dir_all(parent);
+    }
+    match serde_json::to_string_pretty(saved) {
+        Ok(text) => {
+            let tmp = path.with_extension("json.tmp");
+            if std::fs::write(&tmp, text).is_ok() {
+                let _ = std::fs::rename(tmp, path);
+            }
         }
+        Err(err) => eprintln!("suzhou: could not save: {err}"),
     }
 }
 
-/// Write a JSON file atomically.
-pub fn save<T: Serialize>(path: &Path, value: &T) -> std::io::Result<()> {
-    if let Some(dir) = path.parent() {
-        fs::create_dir_all(dir)?;
-    }
-    let tmp = path.with_extension("tmp");
-    {
-        let mut file = fs::File::create(&tmp)?;
-        let bytes = serde_json::to_vec(value).map_err(std::io::Error::other)?;
-        file.write_all(&bytes)?;
-        file.sync_data()?;
-    }
-    fs::rename(tmp, path)
+pub fn clear() {
+    let _ = std::fs::remove_file(state_file());
 }

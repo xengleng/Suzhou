@@ -5,30 +5,29 @@ on:
   pull_request:
 
 jobs:
-  arch:
-    name: Build and test on Arch Linux
-    runs-on: ubuntu-latest
-    container: archlinux:latest
+  check:
+    name: Format, lint and test
+    runs-on: ubuntu-24.04
     steps:
-      - name: Install dependencies
-        run: |
-          pacman -Syu --noconfirm --needed base-devel git rust webkitgtk-6.0 gtk4 libadwaita \
-            xorg-server-xvfb xdotool python-gobject at-spi2-core imagemagick ttf-dejavu
       - uses: actions/checkout@v4
+      - name: Install GPUI's system libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev \
+            libx11-xcb-dev libxcb1-dev libvulkan-dev libasound2-dev libfontconfig-dev libfreetype-dev
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
       - name: Format
         run: cargo fmt --check
       - name: Lint
         run: cargo clippy --locked --all-targets -- -D warnings
-      - name: End-to-end tests
-        run: tests/e2e/run.sh
-      - uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: e2e-screenshots
-          path: target/e2e/
+      - name: Test
+        run: cargo test --locked
       - name: Release build
         run: cargo build --locked --release
       - uses: actions/upload-artifact@v4
         with:
-          name: torvo-x86_64
-          path: target/release/torvo
+          name: suzhou-x86_64-linux
+          path: target/release/suzhou

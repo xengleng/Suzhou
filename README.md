@@ -1,184 +1,154 @@
-# Torvo
+# Suzhou
 
-A small, fast, quiet web browser for Arch Linux.
+A desktop app for a team of always-on Bots, written in Rust with
+[GPUI](https://www.gpui.rs) (the UI framework behind the Zed editor).
 
-Torvo is a Rust rewrite of [Search](https://github.com/driceroland/Search), the
-Mac browser by Office Commun. It keeps Search's look, motion and behaviour (a
-column of tabs, one field, and the page, with nothing else in the way) and
-moves it to Linux:
+Its look and flow are rebuilt from the Grok Bot desktop app: a roster of Bots
+on the left, one conversation in the middle, and a panel on the right for a
+Bot's details, its routines, or its Agent Computer. The work itself is done by
+a pluggable backend. Today that is a built-in demo Bot or
+[Pi](https://pi.dev) in RPC mode.
 
-| | Search (upstream) | Torvo |
+![Chat](docs/screenshots/chat.png)
+
+| Sign in | New Bot | Agent Computer |
 |---|---|---|
-| Language | Swift | Rust |
-| Web engine | Apple WebKit (`WKWebView`) | WebKitGTK 6.0 (`webkit6`) |
-| Interface | SwiftUI + AppKit | GTK 4 + libadwaita, drawn to Search's design |
-| Platform | macOS 14+ | Linux, packaged for Arch |
-| Files | `~/Library/Application Support/Search` | XDG dirs: `~/.local/share/torvo`, `~/.config/torvo`, `~/.cache/torvo` |
-| Updates | Self-updater | pacman / your AUR helper |
+| ![](docs/screenshots/sign-in.png) | ![](docs/screenshots/new-bot.png) | ![](docs/screenshots/agent-computer.png) |
+| **Routine** | **Plugins** | **Dark** |
+| ![](docs/screenshots/routine.png) | ![](docs/screenshots/plugins.png) | ![](docs/screenshots/dark.png) |
 
----
-
-## Install on Arch
-
-From a checkout of this repository:
+## Run it
 
 ```sh
-cd packaging/arch
-makepkg -si
+# Linux needs GPUI's system libraries (Debian/Ubuntu names):
+sudo apt install libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev \
+  libx11-xcb-dev libvulkan-dev libasound2-dev libfontconfig-dev libfreetype-dev
+
+cargo run --release            # first run: sign-in and onboarding
+cargo run --release -- --demo  # skip onboarding, start with a sample team
+cargo run --release -- --reset # forget everything and start again
 ```
 
-This builds the `torvo-git` package and installs it with pacman. Uninstall
-with `sudo pacman -R torvo-git`.
+macOS works too (Xcode command line tools). The app needs a GPU driver with
+Vulkan on Linux or Metal on macOS.
 
-Or by hand:
+## What works
 
-```sh
-sudo pacman -S --needed base-devel rust webkitgtk-6.0 gtk4 libadwaita
-make
-sudo make install          # to /usr/local; `sudo make uninstall` removes it
-```
+Every screen below is interactive. With the demo backend, replies, tool steps,
+questions and approvals are simulated so you can try the whole flow.
 
-For video and audio: `sudo pacman -S gst-plugins-good gst-plugins-bad gst-libav`.
-To make Torvo the default browser:
-`xdg-settings set default-web-browser org.torvo.Torvo.desktop`.
-
----
-
-## What it does
-
-Everything here is checked by the end-to-end tests (see below).
-
-- **One field.** A blank tab is just the field. Type an address and go; type
-  words and search. It completes addresses from history inline, offers pages
-  you've visited, and `Ctrl+K` jumps to an open tab. Keywords: `aw pacman`
-  (Arch Wiki), `aur paru`, `pkg firefox`, and your own in `settings.json`.
-- **Tabs down the side or across the top.** `Ctrl+Shift+S` switches, `Ctrl+S`
-  folds the column away; touch the window's edge and it peeks back. Drag to
-  reorder, drag the edge to resize. Click the tab you're on to type over its
-  address. Right-click for pin, rename, duplicate, copy, mute, sleep, close.
-- **Pins.** A pinned tab becomes a square with its letter or icon, keeps its
-  home page, and comes back every launch.
-- **`Ctrl+Tab` switcher.** Tap it to go back to the last tab; hold it for
-  pictures of your recent tabs.
-- **Tabs that cost nothing until used.** Last session's tabs come back as
-  names; background tabs asleep after 30 minutes give their memory back.
-- **Ad and tracker blocker** (Search's rules, compiled into WebKit's content
-  blocker), off per site with one switch.
-- **Hide anything for good.** `Ctrl+Shift+H`, click a cookie banner; it stays
-  gone on that site. `Ctrl+Shift+U` lists what's hidden and brings it back.
-- **Reading mode** (`Ctrl+Shift+R`), **find on page** (`Ctrl+F`), **zoom**
-  remembered per site, **permission questions** in a small line at the bottom,
-  remembered once answered.
-- **Private tabs** (`Ctrl+Shift+N`). A new tab from a private tab is private
-  too. Nothing is written to history or the session.
-- **History, bookmarks, downloads and settings** as panels that slide over the
-  page, each one key away. Chromium-family bookmarks import in one click.
-- **Light, dark or the system's**, with Search's exact greys.
-
-### Search features not in Torvo
-
-Search is about 50,000 lines of Swift. Torvo ports the browser at its core, in
-about 8,000 lines of Rust. These parts of Search are **not** ported:
-
-| Feature | Why |
+| Area | What you can do |
 |---|---|
-| Chrome extensions | WebKitGTK has no WebExtensions API like `WKWebExtension`. |
-| Saved passwords, passkeys | WebKitGTK has no autofill API. Possible later via `libsecret`. |
-| Floating video (picture-in-picture) | WebKitGTK doesn't implement the PiP API. |
-| Split view, spaces, tab groups | Not written yet. |
-| Link peek, the small "Little" window, bookmarks bar, site card, middle-button auto-scroll | Not written yet. |
-| AI assistant, AppleScript, sharing, Arc/Safari import | macOS-specific or out of scope. |
-| Self-updater, welcome and what's-new pages | pacman handles updates. |
+| **First run** | Sign in, wait for the browser, pick the apps you use, watch the computer set up, meet your first Bot. |
+| **New Bot** | Pick one of 10 colours and 8 shapes, name it, or start from a suggestion (Night Shift, Inbox Triage, ...). |
+| **Roster** | Search, pin, duplicate, hide and delete Bots (right-click). Status dots: green idle, orange needs you, a hopping face while working. Unread dot. |
+| **Chat** | Streaming replies with links and `code`, tool steps with spinners, file cards (open or download), question cards you answer inline, approval cards (Approve / Deny), reactions, reply-to, copy, delete, "Save the process as skill". |
+| **Composer** | Grows to 9 lines, Enter sends, Shift+Enter new line. `@` for Bots, routines and connectors; `/` for skills. `+` menu: attach files, Teach a task, Agent Computer, voice. Voice input with a live waveform. Stop button while a Bot works. |
+| **Agent Computer** | Side panel preview with the pointer gliding to what the Bot is doing; full-screen takeover ("You're in control"), then Hand back. |
+| **Details** | Profile (name, job title, description, colour, shape), routines, skills, files, pin/duplicate/hide/delete. |
+| **Routines** | Active switch, Delete, Test run, name, instruction, schedules (click to change, Add another), run history. |
+| **Plugins** | Search, 17 categories, Featured and Team sections, Add with a connecting state. |
+| **Settings** | Appearance (System/Light/Dark), notifications, approval rules, computer Recover/Reset, sign out. |
+| **Notifications** | Cards slide in when a Bot you are not looking at finishes, asks, or needs approval. Click to jump there. |
 
-On purpose, as with Search: no account, no sync, no telemetry, one window.
+Your team is saved to `~/.local/share/suzhou/state.json` (change with
+`SUZHOU_DATA_DIR`). `--demo` never writes it.
 
----
+### Keyboard
 
-## Keyboard
+`Ctrl` on Linux, `Cmd` on macOS.
 
-Search's keys, with `Ctrl` for `⌘`. Settings › Shortcuts lists them too.
+| Keys | Does |
+|---|---|
+| Ctrl+N | New Bot |
+| Ctrl+K | Search Bots |
+| Ctrl+D | Start / finish voice input |
+| Ctrl+I | Bot details |
+| Ctrl+Shift+C | Agent Computer |
+| Ctrl+Shift+P | Plugins |
+| Ctrl+, | Settings |
+| Ctrl+\\ | Hide / show the sidebar |
+| Ctrl+Shift+L | Light / dark |
+| Ctrl+. | Stop the Bot |
+| Esc | Close whatever is on top |
 
-| Keys | Action | Keys | Action |
-|---|---|---|---|
-| `Ctrl+L` | Address field | `Ctrl+K` | Go to an open tab |
-| `Ctrl+T` / `Ctrl+W` | New / close tab | `Ctrl+Shift+T` | Reopen closed tab |
-| `Ctrl+Shift+N` | New private tab | `Ctrl+D` | Duplicate tab |
-| `Ctrl+Tab` | Recent tabs | `Ctrl+Shift+[` / `]` | Previous / next tab |
-| `Ctrl+1`…`Ctrl+9` | Jump to tab | `Ctrl+[` / `Ctrl+]` | Back / forward |
-| `Ctrl+R`, `F5` | Reload | `Ctrl+Alt+R` | Reload, skipping the cache |
-| `Ctrl+F`, `Ctrl+G` | Find, find next | `Ctrl+Shift+R` | Reading mode |
-| `Ctrl+Shift+H` | Hide something | `Ctrl+Shift+U` | What's hidden here |
-| `Ctrl+Shift+B` | Bookmark page | `Ctrl+Y` | History |
-| `Ctrl+Shift+J` | Downloads | `Ctrl+,` | Settings |
-| `Ctrl+Shift+S` | Tabs side / top | `Ctrl+S` | Fold tabs away |
-| `Ctrl+Shift+C` | Copy address | `Ctrl+Shift+V` | Paste and go |
-| `Ctrl +` / `−` / `0` | Zoom | `F11` / `F12` | Full screen / inspector |
+## Motion
 
----
+Animations are part of the design, not decoration:
 
-## Privacy, concretely
+- Messages fade and rise in; your own slide in from the right.
+- The chat follows new text smoothly while a reply streams, and stops
+  following when you scroll up (a button takes you back down).
+- Panels slide in from the right and back out from wherever they are.
+- Dialogs fade up over a dimmed window; menus drop in from where you clicked.
+- The New Bot face springs when you change its colour or shape.
+- Switches slide with a small overshoot. Faces blink now and then and hop
+  while their Bot works.
 
-| What | Where | Who can read it |
-|---|---|---|
-| History, bookmarks, tabs, hidden elements, downloads list | JSON files in `~/.local/share/torvo/` | You. |
-| Settings | `~/.config/torvo/settings.json` | You. |
-| Cookies and site data | `~/.local/share/torvo/webkit/` | The sites that set them. Clear in Settings › Privacy. |
-| Cache, compiled block list | `~/.cache/torvo/` | Safe to delete. |
-| Private tabs | Memory only | Gone when the last private tab closes. |
+Two tools do this. GPUI's `with_animation` plays one-shot and looping effects.
+`src/anim.rs` has a small `Tween` for things that must reverse mid-way
+(panels, dialogs, toasts, the computer pointer).
 
----
-
-## Made for Arch
-
-- Links against Arch's `webkitgtk-6.0`, so engine security fixes arrive with
-  `pacman -Syu`.
-- Native Wayland and X11 through GTK 4. Each page runs in WebKit's
-  `bubblewrap` sandbox.
-- XDG directories, `xdg-user-dirs` Downloads, file dialogs through
-  `xdg-desktop-portal`.
-- Release build with fat LTO, one codegen unit and `panic = abort`.
-
-**Troubleshooting.** Blank pages on NVIDIA's proprietary driver: run with
-`WEBKIT_DISABLE_DMABUF_RENDERER=1`, or turn off hardware acceleration in
-Settings. No video: install the GStreamer plugins above. DRM sites (Netflix
-and similar) don't play: WebKitGTK has no Widevine.
-
----
-
-## For developers
+## Connecting Pi
 
 ```sh
-cargo run -- https://archlinux.org
-tests/e2e/run.sh                 # every end-to-end test
-tests/e2e/run.sh find zoom       # just the ones whose names match
+npm install -g @mariozechner/pi-coding-agent   # gives you `pi`
+SUZHOU_BACKEND=pi cargo run --release
 ```
 
-There are no unit tests. The tests drive the real browser on a virtual
-screen: they type with `xdotool`, read the window through the accessibility
-tree (AT-SPI), and load pages from a small local server posing as the web
-(`news.test`, `shop.test`, a search engine, a download, a site that fails).
-Each test starts Torvo with an empty home, so they don't touch yours. A
-failing test saves a screenshot to `target/e2e/`.
+Each Bot gets its own `pi --mode rpc` process, started on its first message,
+working in its own folder (`~/.local/share/suzhou/bots/<id>/`). Its first
+message is prefixed with who the Bot is (name, job, description).
 
-They need `xorg-server-xvfb xdotool python-gobject at-spi2-core imagemagick`.
-Building needs Rust 1.88+, GTK 4.14+, libadwaita 1.5+, WebKitGTK 2.44+.
-
-| File | What it does |
+| Setting | Meaning |
 |---|---|
-| `main.rs` | Start-up, one instance, command line, colours |
-| `browser.rs` | The window: tabs, the room the column takes, session, downloads |
-| `tab.rs` | One tab and its WebView's signals |
-| `tabs.rs` | The column and the strip: rows, pins, the live pill, dragging |
-| `omnibox.rs` | The field and its suggestions |
-| `bars.rs` | The line at the bottom, the link under the pointer, find |
-| `panels.rs` | History, downloads, bookmarks, settings, hidden things |
-| `switcher.rs` | `Ctrl+Tab` |
-| `keys.rs` | Every key and menu action |
-| `motion.rs` | Search's springs and fades |
-| `web.rs`, `shield.rs`, `curtain.rs` | WebKit sessions, the blocker, hidden elements |
-| `settings.rs`, `history.rs`, `bookmarks.rs`, `loot.rs`, `address.rs`, `store.rs` | What's kept, and how |
+| `SUZHOU_PI_BIN` | The Pi executable (default `pi`) |
+| `SUZHOU_PI_ARGS` | Extra arguments, for example `--provider anthropic --model ...` |
 
-## License
+How Pi's events map onto the interface (`src/backend/pi.rs`):
 
-MIT. Torvo carries over code, rules and design from Search, © Office Commun,
-also MIT. Both notices are in [LICENSE](LICENSE).
+| Pi event | Shown as |
+|---|---|
+| `agent_start` / `agent_end` | Bot is working / done |
+| `message_update` with `text_delta` | Streaming reply |
+| `tool_execution_start` / `_end` | Step with spinner, then a tick |
+| `extension_ui_request` `confirm` | Approval card; your answer is sent back |
+| `extension_ui_request` `input` / `select` | Question card; your answer is sent back |
+| `response` with `success: false` | Grey error line |
+
+**Caveat:** this mapping was written from Pi's RPC documentation, without a
+live Pi to test against. Unknown events are ignored, so a mismatch shows up as
+a quiet UI rather than a crash. Expect small fixes when you first connect it.
+
+### Adding another backend
+
+Implement `backend::Backend` (`send` a `Request`), push `Event`s into the
+channel, and add it to `backend::connect`. The UI never talks to anything
+else.
+
+## Code map
+
+| Path | Holds |
+|---|---|
+| `src/main.rs` | Window, fonts, command-line flags |
+| `src/ui/app.rs` | All state and behaviour; backend events land here |
+| `src/ui/sidebar.rs`, `chat.rs`, `new_bot.rs`, `panels.rs`, `modals.rs`, `overlays.rs`, `onboarding.rs` | One file per area of the screen |
+| `src/ui/computer.rs` | The Agent Computer screen drawing |
+| `src/ui/text_input.rs` | Multi-line text field (GPUI has none built in) |
+| `src/ui/rich.rs` | Markdown-ish text: lists, headings, links, `code` |
+| `src/backend/` | `mock.rs` demo Bot, `pi.rs` Pi adapter |
+| `assets/` | Icons, avatar shapes, fonts (embedded at build time) |
+
+## Not done yet
+
+- Sign-in is simulated; there is no account server.
+- The Agent Computer is a drawing driven by backend events, not a real remote
+  screen. A real one needs a VNC/WebRTC stream from wherever the Bot runs.
+- Voice input shows the recording UI and inserts sample text; no speech
+  recognition yet.
+- Plugins are a catalogue; "Add" does not run OAuth.
+- Bot groups, mobile layout and Teach-a-task screen recording are not built.
+
+## Licence
+
+MIT. Bundled fonts keep their own licences (Inter: OFL 1.1; DejaVu Sans Mono).
