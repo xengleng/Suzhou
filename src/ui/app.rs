@@ -676,6 +676,7 @@ impl AppView {
     pub fn open_bot(&mut self, id: BotId, window: &mut Window, cx: &mut Context<Self>) {
         if self.page != Page::Bot(id) {
             self.page = Page::Bot(id);
+            self.voice = None;
             self.stick_bottom = true;
             self.chat_scroll.scroll_to_bottom();
             self.reply_to = None;
@@ -1592,6 +1593,9 @@ impl AppView {
             window.focus(&self.inputs.composer.focus_handle(cx));
         } else {
             self.voice = Some(Instant::now());
+            // The text field is swapped for the waveform, so keep the keyboard
+            // on the window or shortcuts like Ctrl+D and Esc go nowhere.
+            window.focus(&self.focus);
         }
         cx.notify();
     }
