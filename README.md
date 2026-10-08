@@ -9,6 +9,8 @@ Bot's details, its routines, or its Agent Computer. The work itself is done by
 a pluggable backend. Today that is a built-in demo Bot or
 [Pi](https://pi.dev) in RPC mode.
 
+There is also a phone version in Flutter in [`mobile/`](mobile/README.md).
+
 ![Chat](docs/screenshots/chat.png)
 
 | Sign in | New Bot | Agent Computer |

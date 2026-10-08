@@ -1,0 +1,26 @@
+name: Mobile
+
+on:
+  push:
+    paths: ["mobile/**", ".github/workflows/mobile.yml"]
+  pull_request:
+    paths: ["mobile/**", ".github/workflows/mobile.yml"]
+
+jobs:
+  flutter:
+    name: Analyze, test and build web
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.6
+      - run: flutter pub get
+      - run: dart format --set-exit-if-changed -l 160 lib test tool
+      - run: flutter analyze
+      - run: flutter test
+      - run: flutter build web --release
